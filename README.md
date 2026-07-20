@@ -1,5 +1,6 @@
 # 🏢 Recruitment Management System (ATS)
 
+
 > **Language Navigation / Chuyển đổi ngôn ngữ:**  
 > 🇻🇳 [Tiếng Việt](#-hệ-thống-quản-lý-tuyển-dụng-ats---tiếng-việt) | 🇬🇧 [English](#-recruitment-management-system-ats---english)
 
