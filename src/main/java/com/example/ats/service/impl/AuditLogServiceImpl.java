@@ -56,25 +56,29 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logAction(UUID userId, String userEmail, String action, String resourceType, String resourceId, String description) {
-        String ipAddress = resolveClientIpAddress();
+        try {
+            String ipAddress = resolveClientIpAddress();
 
-        AuditLog auditLog = AuditLog.builder()
-                .userId(userId)
-                .userEmail(userEmail != null ? userEmail : "system")
-                .action(action)
-                .resourceType(resourceType)
-                .resourceId(resourceId)
-                .description(description)
-                .ipAddress(ipAddress)
-                .createdAt(Instant.now())
-                .build();
+            AuditLog auditLog = AuditLog.builder()
+                    .userId(userId)
+                    .userEmail(userEmail != null ? userEmail : "system")
+                    .action(action)
+                    .resourceType(resourceType)
+                    .resourceId(resourceId)
+                    .description(description)
+                    .ipAddress(ipAddress)
+                    .createdAt(Instant.now())
+                    .build();
 
-        auditLogRepository.save(auditLog);
+            auditLogRepository.save(auditLog);
 
-        log.info("Audit Event | Action: {} | Resource: {}:{} | User: {} | IP: {} | Description: {}",
-                action, resourceType, resourceId, userEmail, ipAddress, description);
+            log.info("Audit Event | Action: {} | Resource: {}:{} | User: {} | IP: {} | Description: {}",
+                    action, resourceType, resourceId, userEmail, ipAddress, description);
+        } catch (Exception e) {
+            log.error("Failed to persist audit log: {}", e.getMessage());
+        }
     }
 
     @Override
