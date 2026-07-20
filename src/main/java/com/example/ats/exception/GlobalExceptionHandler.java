@@ -293,9 +293,13 @@ public class GlobalExceptionHandler {
 
         log.error("Unexpected error at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
 
+        String detailMessage = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getClass().getSimpleName() + ": " + ex.getMessage()
+                : "An unexpected error occurred. Please try again later or contact support.";
+
         ApiErrorResponse error = ApiErrorResponse.of(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected error occurred. Please try again later or contact support.",
+                detailMessage,
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
