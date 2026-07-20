@@ -96,4 +96,8 @@ coverage/
 # ─── H2 Database File Storage ──────────────────────────────────────────────────
 data/
 *.db
-
+# ─── Node / React Frontend ───────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+frontend/dist/
+.npm
