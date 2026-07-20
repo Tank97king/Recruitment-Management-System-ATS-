@@ -9,7 +9,8 @@ import {
   UserCheck, 
   RefreshCw, 
   RotateCcw,
-  AlertTriangle
+  AlertTriangle,
+  WifiOff
 } from 'lucide-react';
 import axiosClient from '../../services/axiosClient';
 import DashboardCard from '../../components/ui/DashboardCard';
@@ -17,11 +18,20 @@ import StatisticsCard from '../../components/ui/StatisticsCard';
 import SectionTitle from '../../components/ui/SectionTitle';
 import LoadingCard from '../../components/ui/LoadingCard';
 
+// ── Mock data used when backend is unreachable ───────────────────────────────
+const MOCK_SUMMARY    = { totalCompanies: 12, totalJobs: 34, totalCandidates: 128, totalApplications: 256, totalInterviews: 47, totalUsers: 8 };
+const MOCK_APPS       = { totalApplications: 256, applied: 89, reviewing: 62, interview: 47, offer: 28, hired: 19, rejected: 11 };
+const MOCK_JOBS       = { openJobs: 21, closedJobs: 9, draftJobs: 4 };
+const MOCK_CANDIDATES = { candidatesWithCv: 104, candidatesWithoutCv: 24 };
+const MOCK_COMPANIES  = { companiesWithActiveJobs: 9, companiesWithoutJobs: 3 };
+// ─────────────────────────────────────────────────────────────────────────────
+
 const Dashboard = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   // States for API data
   const [summary, setSummary] = useState(null);
@@ -53,6 +63,7 @@ const Dashboard = () => {
         axiosClient.get('/dashboard/companies')
       ]);
 
+      setIsOffline(false);
       setSummary(summaryRes.data.data);
       setApps(appsRes.data.data);
       setJobs(jobsRes.data.data);
@@ -60,10 +71,22 @@ const Dashboard = () => {
       setCompanies(companiesRes.data.data);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError(
-        err.response?.data?.message || 
-        'Failed to connect to the backend server. Please verify that the API is running and check your connection.'
-      );
+
+      // Network error → use mock data so the UI still renders
+      const isNetworkError = !err.response;
+      if (isNetworkError) {
+        setIsOffline(true);
+        setSummary(MOCK_SUMMARY);
+        setApps(MOCK_APPS);
+        setJobs(MOCK_JOBS);
+        setCandidates(MOCK_CANDIDATES);
+        setCompanies(MOCK_COMPANIES);
+      } else {
+        setError(
+          err.response?.data?.message ||
+          'Failed to connect to the backend server. Please verify that the API is running and check your connection.'
+        );
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -172,6 +195,29 @@ const Dashboard = () => {
           </button>
         </div>
       </div>
+
+      {/* Offline banner – shown when backend is unreachable */}
+      {isOffline && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 shadow-sm">
+          <WifiOff className="w-5 h-5 text-amber-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">
+              Backend server is offline — showing demo data
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              Start the backend (port 8080) then click <strong>Refresh Data</strong> to load live data.
+            </p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg gap-1.5 transition-colors disabled:opacity-50 flex-shrink-0"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Top Section Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">

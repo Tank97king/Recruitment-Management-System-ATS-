@@ -2,117 +2,164 @@
 TITLE Recruitment Management System (ATS) Launcher
 CLS
 
-:: Auto-detect JAVA_HOME if not defined
+:: =====================================================================
+::  FIX: Do NOT use mvnw.cmd — it fails when the project path contains
+::  parentheses like "(ATS)". We resolve Maven from the wrapper cache
+::  and call mvn.cmd directly.
+:: =====================================================================
+
+:: ── 1. Auto-detect JAVA_HOME ─────────────────────────────────────────
 IF NOT DEFINED JAVA_HOME (
     IF EXIST "C:\Program Files\Java\jdk-21" (
         SET "JAVA_HOME=C:\Program Files\Java\jdk-21"
-    ) ELSE IF EXIST "C:\Program Files\Amazon Corretto\jdk21*" (
-        FOR /D %%D IN ("C:\Program Files\Amazon Corretto\jdk21*") DO SET "JAVA_HOME=%%D"
-    ) ELSE IF EXIST "C:\Program Files\Eclipse Adoptium\jdk-21*" (
-        FOR /D %%D IN ("C:\Program Files\Eclipse Adoptium\jdk-21*") DO SET "JAVA_HOME=%%D"
-    ) ELSE (
-        FOR /D %%D IN ("C:\Program Files\Java\jdk-21*") DO SET "JAVA_HOME=%%D"
     )
 )
-
-:: Trim quotes and trailing spaces from JAVA_HOME
-IF DEFINED JAVA_HOME (
-    SET "JAVA_HOME=%JAVA_HOME:"=%"
+IF NOT DEFINED JAVA_HOME (
+    FOR /D %%D IN ("C:\Program Files\Java\jdk-21*") DO SET "JAVA_HOME=%%D"
 )
-IF DEFINED JAVA_HOME (
-    IF "%JAVA_HOME:~-1%"==" " SET "JAVA_HOME=%JAVA_HOME:~0,-1%"
+IF NOT DEFINED JAVA_HOME (
+    FOR /D %%D IN ("C:\Program Files\Amazon Corretto\jdk21*") DO SET "JAVA_HOME=%%D"
 )
-
-IF DEFINED JAVA_HOME (
-    SET "PATH=%JAVA_HOME%\bin;%PATH%"
+IF NOT DEFINED JAVA_HOME (
+    FOR /D %%D IN ("C:\Program Files\Eclipse Adoptium\jdk-21*") DO SET "JAVA_HOME=%%D"
 )
 
+:: Strip trailing quote/space
+IF DEFINED JAVA_HOME SET "JAVA_HOME=%JAVA_HOME:"=%"
+IF DEFINED JAVA_HOME IF "%JAVA_HOME:~-1%"==" " SET "JAVA_HOME=%JAVA_HOME:~0,-1%"
+
+IF NOT DEFINED JAVA_HOME (
+    ECHO [ERROR] Java 21 not found. Please install JDK 21 and set JAVA_HOME.
+    PAUSE & EXIT /B 1
+)
+SET "PATH=%JAVA_HOME%\bin;%PATH%"
+
+:: ── 2. Auto-detect Maven from wrapper cache ───────────────────────────
+::  Structure: %USERPROFILE%\.m2\wrapper\dists\apache-maven-X.X.X-bin\<hash>\apache-maven-X.X.X\bin\mvn.cmd
+SET "MVN="
+SET "MAVEN_DISTS=%USERPROFILE%\.m2\wrapper\dists"
+
+FOR /F "delims=" %%F IN ('DIR /B /S "%MAVEN_DISTS%\mvn.cmd" 2^>nul') DO (
+    SET "MVN=%%F"
+)
+
+IF NOT DEFINED MVN (
+    ECHO [ERROR] Maven not found in %MAVEN_DISTS%.
+    ECHO         Tip: Run mvnw.cmd once from a path WITHOUT parentheses
+    ECHO              e.g.  cd D:\  ^&^&  "D:\Recruitment Management System (ATS)\mvnw.cmd" --version
+    PAUSE & EXIT /B 1
+)
+
+:: ── 3. Project root (folder where this .bat lives) ───────────────────
+SET "PROJECT_DIR=%~dp0"
+IF "%PROJECT_DIR:~-1%"=="\" SET "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
+
+:: ── 4. Menu ──────────────────────────────────────────────────────────
 :MENU
-ECHO =====================================================================
-ECHO           Recruitment Management System (ATS) Launcher
-ECHO =====================================================================
+CLS
 ECHO.
-ECHO  [1] Start Both (H2 In-Memory DB - No PostgreSQL Required) [RECOMMENDED]
-ECHO  [2] Start Both (PostgreSQL Database on Port 5432)
-ECHO  [3] Start Backend Only (H2 In-Memory DB)
-ECHO  [4] Start Backend Only (PostgreSQL Database)
-ECHO  [5] Start Frontend Only (Port 3000)
-ECHO  [6] Exit
+ECHO  +=============================================================+
+ECHO  ^|      Recruitment Management System (ATS) Launcher          ^|
+ECHO  +=============================================================+
+ECHO  ^|  Java  : %JAVA_HOME%
+ECHO  ^|  Maven : %MVN%
+ECHO  +=============================================================+
+ECHO  ^|                                                             ^|
+ECHO  ^|  [1]  Start Both  -  H2 In-Memory DB  [RECOMMENDED]        ^|
+ECHO  ^|  [2]  Start Both  -  PostgreSQL (port 5432)                ^|
+ECHO  ^|  [3]  Backend Only  -  H2 In-Memory DB                     ^|
+ECHO  ^|  [4]  Backend Only  -  PostgreSQL                          ^|
+ECHO  ^|  [5]  Frontend Only  (http://localhost:3000)                ^|
+ECHO  ^|  [6]  Exit                                                  ^|
+ECHO  ^|                                                             ^|
+ECHO  +=============================================================+
 ECHO.
-ECHO =====================================================================
-SET /P OPTION="Choose an option [1-6]: "
+SET /P OPTION="  Choose an option [1-6]: "
 
 IF "%OPTION%"=="1" GOTO BOTH_H2
 IF "%OPTION%"=="2" GOTO BOTH_POSTGRES
 IF "%OPTION%"=="3" GOTO BACKEND_H2
 IF "%OPTION%"=="4" GOTO BACKEND_POSTGRES
 IF "%OPTION%"=="5" GOTO FRONTEND
-IF "%OPTION%"=="6" GOTO EXIT
+IF "%OPTION%"=="6" GOTO EXIT_NOW
 
-ECHO Invalid choice. Please try again.
+ECHO  [!] Invalid choice. Please try again.
 TIMEOUT /T 2 >NUL
-CLS
 GOTO MENU
 
+:: ─────────────────────────────────────────────────────────────────────
 :BOTH_H2
 ECHO.
-ECHO Launching Spring Boot Backend with H2 In-Memory Database...
-START "ATS Backend (Spring Boot H2)" cmd /k "cd /d "%~dp0" && set SPRING_PROFILES_ACTIVE=h2 && mvnw.cmd spring-boot:run"
-ECHO Launching React Frontend...
-START "ATS Frontend (Vite)" cmd /k "cd /d "%~dp0frontend" && npm run dev"
+ECHO  Starting Backend (H2) in a new window...
+START "ATS Backend - H2" cmd /k "cd /d "%PROJECT_DIR%" && set "JAVA_HOME=%JAVA_HOME%" && set "PATH=%JAVA_HOME%\bin;%PATH%" && "%MVN%" spring-boot:run -Dspring-boot.run.profiles=h2"
+ECHO  Starting Frontend in a new window...
+START "ATS Frontend" cmd /k "cd /d "%PROJECT_DIR%\frontend" && npm run dev"
 ECHO.
-ECHO Opening web browser...
-TIMEOUT /T 12 >NUL
+ECHO  Waiting 15s for services to initialize...
+TIMEOUT /T 15 >NUL
 START http://localhost:3000
 ECHO.
-ECHO Both services are starting in separate windows.
-ECHO Frontend URL : http://localhost:3000
-ECHO Backend URL  : http://localhost:8080
-ECHO Swagger UI   : http://localhost:8080/swagger-ui/index.html
-ECHO H2 Console   : http://localhost:8080/h2-console
+ECHO  +--------------------------------------------------+
+ECHO  ^|  Frontend  : http://localhost:3000               ^|
+ECHO  ^|  Backend   : http://localhost:8080               ^|
+ECHO  ^|  Swagger   : http://localhost:8080/swagger-ui/   ^|
+ECHO  ^|  H2 Console: http://localhost:8080/h2-console    ^|
+ECHO  +--------------------------------------------------+
 ECHO.
 PAUSE
-GOTO EXIT
+GOTO EXIT_NOW
 
+:: ─────────────────────────────────────────────────────────────────────
 :BOTH_POSTGRES
 ECHO.
-ECHO Launching Spring Boot Backend with PostgreSQL Database...
-START "ATS Backend (Spring Boot Postgres)" cmd /k "cd /d "%~dp0" && mvnw.cmd spring-boot:run"
-ECHO Launching React Frontend...
-START "ATS Frontend (Vite)" cmd /k "cd /d "%~dp0frontend" && npm run dev"
+ECHO  [!] Make sure PostgreSQL is running on port 5432.
 ECHO.
-ECHO Both services are starting in separate windows.
-ECHO Frontend URL : http://localhost:3000
-ECHO Backend URL  : http://localhost:8080
-ECHO Swagger UI   : http://localhost:8080/swagger-ui/index.html
+START "ATS Backend - PostgreSQL" cmd /k "cd /d "%PROJECT_DIR%" && set "JAVA_HOME=%JAVA_HOME%" && set "PATH=%JAVA_HOME%\bin;%PATH%" && "%MVN%" spring-boot:run"
+START "ATS Frontend" cmd /k "cd /d "%PROJECT_DIR%\frontend" && npm run dev"
+ECHO.
+ECHO  +--------------------------------------------------+
+ECHO  ^|  Frontend  : http://localhost:3000               ^|
+ECHO  ^|  Backend   : http://localhost:8080               ^|
+ECHO  ^|  Swagger   : http://localhost:8080/swagger-ui/   ^|
+ECHO  +--------------------------------------------------+
 ECHO.
 PAUSE
-GOTO EXIT
+GOTO EXIT_NOW
 
+:: ─────────────────────────────────────────────────────────────────────
 :BACKEND_H2
 ECHO.
-ECHO Starting Spring Boot Backend with H2 In-Memory DB...
-cd /d "%~dp0"
-set SPRING_PROFILES_ACTIVE=h2
-mvnw.cmd spring-boot:run
+ECHO  Starting Backend with H2 In-Memory DB...
+ECHO  Press Ctrl+C to stop.
+ECHO.
+cd /d "%PROJECT_DIR%"
+"%MVN%" spring-boot:run -Dspring-boot.run.profiles=h2
 PAUSE
-GOTO EXIT
+GOTO EXIT_NOW
 
+:: ─────────────────────────────────────────────────────────────────────
 :BACKEND_POSTGRES
 ECHO.
-ECHO Starting Spring Boot Backend with PostgreSQL...
-cd /d "%~dp0"
-mvnw.cmd spring-boot:run
+ECHO  [!] Make sure PostgreSQL is running on port 5432.
+ECHO  Starting Backend with PostgreSQL...
+ECHO  Press Ctrl+C to stop.
+ECHO.
+cd /d "%PROJECT_DIR%"
+"%MVN%" spring-boot:run
 PAUSE
-GOTO EXIT
+GOTO EXIT_NOW
 
+:: ─────────────────────────────────────────────────────────────────────
 :FRONTEND
 ECHO.
-ECHO Starting React Frontend...
-cd /d "%~dp0frontend"
+ECHO  Starting Frontend (Vite dev server)...
+ECHO  Press Ctrl+C to stop.
+ECHO.
+cd /d "%PROJECT_DIR%\frontend"
 npm run dev
 PAUSE
-GOTO EXIT
+GOTO EXIT_NOW
 
-:EXIT
-EXIT
+:: ─────────────────────────────────────────────────────────────────────
+:EXIT_NOW
+EXIT /B 0
