@@ -97,7 +97,7 @@ public class HealthController {
     public ResponseEntity<com.example.ats.dto.response.ApiResponse<Map<String, Object>>> healthCheck() {
         Map<String, Object> healthData = new LinkedHashMap<>();
         healthData.put("application", applicationProperties.getName());
-        healthData.put("version", infoProperties.getVersion());
+        healthData.put("version", "1.0.1-diagnostic");
         healthData.put("status", "UP");
         healthData.put("environment", profileProperties.getActive());
         healthData.put("serverTime", Instant.now().toString());
