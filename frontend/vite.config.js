@@ -17,3 +17,5 @@ export default defineConfig({
     host: true,
   },
 })
+// Configured for ATS React SPA deployment
+
