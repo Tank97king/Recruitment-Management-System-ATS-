@@ -1,0 +1,73 @@
+# =============================================================================
+#  ATS System — GitHub Actions Continuous Integration (CI) Workflow
+# =============================================================================
+
+name: ATS System CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '21'
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Java Development Kit (JDK 21) & Cache Maven dependencies
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # 3. Display Java, Maven and Environment information
+      - name: Display System Information
+        run: |
+          echo "=== Java Version ==="
+          java -version
+          echo "=== Maven Version ==="
+          mvn -version
+          echo "=== Runner Environment ==="
+          uname -a
+
+      # 4. Compile the project (Fails workflow if compilation fails)
+      - name: Build Project
+        run: mvn compile -B
+
+      # 5. Run all Unit & Integration Tests (Fails workflow if any test fails)
+      - name: Run Tests
+        run: mvn test -B -Dspring.profiles.active=test
+
+      # 6. Package the application into an executable JAR on success
+      - name: Package Executable JAR
+        if: success()
+        run: mvn package -B -DskipTests
+
+      # 7. Upload JUnit test reports (always executed so failures can be inspected)
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: target/surefire-reports/
+          retention-days: 7
+
+      # 8. Upload the generated executable JAR artifact on success
+      - name: Upload Executable JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ats-system-jar
+          path: target/*.jar
+          retention-days: 7

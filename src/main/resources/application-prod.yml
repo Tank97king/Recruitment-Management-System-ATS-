@@ -1,0 +1,38 @@
+# =============================================================================
+#  ATS System — Production Profile Overrides
+#  Activated by: SPRING_PROFILES_ACTIVE=prod
+#  ALL secrets MUST be provided via environment variables.
+#  This file must NOT contain any actual credentials.
+# =============================================================================
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain
+    min-response-size: 2048
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    validate-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized

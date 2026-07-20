@@ -1,0 +1,95 @@
+# =============================================================================
+#  ATS System — Docker Compose (Local Development)
+#
+#  Starts two services:
+#    1. postgres  — PostgreSQL 16 database
+#    2. ats-app   — The Spring Boot application
+#
+#  Usage:
+#    Start all services  : docker-compose up -d
+#    View logs           : docker-compose logs -f ats-app
+#    Stop all services   : docker-compose down
+#    Stop + remove data  : docker-compose down -v
+#
+#  Prerequisites: Copy .env.example to .env and fill in values.
+# =============================================================================
+
+services:
+
+  # ─── PostgreSQL Database ────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ats-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ats_db}
+      POSTGRES_USER: ${DB_USERNAME:-ats_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ats_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      # Maps host port 5432 to container port 5432.
+      # Access from host: psql -h localhost -p 5432 -U ats_user -d ats_db
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      # Named volume for persistent data (survives docker-compose down)
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-ats_user} -d ${DB_NAME:-ats_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─── ATS Spring Boot Application ────────────────────────────────────────────
+  ats-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ats-application
+    restart: unless-stopped
+    # The application starts only after PostgreSQL passes its health check.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      # Database connection (points to the 'postgres' service by container name)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-ats_db}
+      DB_USERNAME: ${DB_USERNAME:-ats_user}
+      DB_PASSWORD: ${DB_PASSWORD:-ats_password}
+      # JWT configuration
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY_MS: ${JWT_ACCESS_EXPIRY_MS:-3600000}
+      JWT_REFRESH_EXPIRY_MS: ${JWT_REFRESH_EXPIRY_MS:-604800000}
+      # Server
+      SERVER_PORT: 8080
+      # File storage (mounted volume path inside container)
+      FILE_UPLOAD_DIR: /app/uploads/resumes
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      # Mail/SMTP
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    volumes:
+      # Mount a host directory for resume file storage (persists across restarts)
+      - resume_uploads:/app/uploads/resumes
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+# ─── Named Volumes ──────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  resume_uploads:
+    driver: local

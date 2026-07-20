@@ -1,0 +1,32 @@
+# =============================================================================
+#  ATS System — Test Profile Configuration
+#  Activated by: @ActiveProfiles("test") in test classes
+#  Uses H2 in-memory database so tests run without a PostgreSQL instance.
+# =============================================================================
+
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///ats_test_db
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop    # Recreate schema in Testcontainer PostgreSQL
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: false             # Disable Flyway in tests; Hibernate creates schema
+
+management:
+  health:
+    mail:
+      enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.example.ats: INFO

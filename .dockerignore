@@ -1,0 +1,30 @@
+# Ignore build artifacts
+target/
+*.jar
+*.war
+
+# Ignore version control systems
+.git/
+.gitignore
+
+# Ignore IDE configs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Ignore logging directories and files
+logs/
+*.log
+
+# Ignore local properties, env files and configuration
+.env
+.env.local
+docker-compose*.yml
+Dockerfile
+README.md
+Walkthrough.md
+testing_strategy.md
+implementation_plan.md
+task.md

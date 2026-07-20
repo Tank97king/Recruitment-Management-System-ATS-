@@ -1,0 +1,99 @@
+# =============================================================================
+#  ATS System — .gitignore
+# =============================================================================
+
+# ─── Maven Build Output ───────────────────────────────────────────────────────
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ─── IDE — IntelliJ IDEA ──────────────────────────────────────────────────────
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ─── IDE — Eclipse ────────────────────────────────────────────────────────────
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# ─── IDE — VS Code ────────────────────────────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ─── IDE — NetBeans ───────────────────────────────────────────────────────────
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+
+# ─── Environment & Secrets ────────────────────────────────────────────────────
+# NEVER commit the actual .env file — it contains database passwords and JWT secrets.
+# Commit only .env.example (the template without real values).
+.env
+*.env
+!.env.example
+
+# ─── Uploaded Files ───────────────────────────────────────────────────────────
+# Resume files uploaded during development should not be committed.
+uploads/
+
+# ─── OS Files ─────────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+# Do NOT ignore docker-compose.yml or Dockerfile — they should be committed.
+# Ignore override files used for local developer-specific configurations.
+docker-compose.override.yml
+
+# ─── Spring Boot DevTools ─────────────────────────────────────────────────────
+.reloadtrigger
+
+# ─── Test Coverage Reports ────────────────────────────────────────────────────
+jacoco.exec
+coverage/
+
+# ─── H2 Database File Storage ──────────────────────────────────────────────────
+data/
+*.db
+
